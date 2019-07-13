@@ -30,6 +30,11 @@ func getBits(h:Int) = {
     toString(toInt(generator.bytes) % bits)
 }
 
+func getTsBits(h:Int) = {
+    let blockInfo = extract(blockInfoByHeight(h))
+    toString(blockInfo.timestamp % 3)
+}
+
 # broadcast(invokeScript({ dApp: '3N4rjDDHk7RryE6zrghupUJ28wdEwhr1pYu', fee: 900000, call: { function: 'initRandom', args: [] }}))
 
 @Callable(i)
@@ -46,7 +51,7 @@ func initRandom() = {
 func completeRandom(txid:String) = {
     let h = extract(getInteger(this, "random_height_" + txid))
     if height < h + 5 then throw("please wait until height " + toString(h + 5)) else
-    let val = txid + getBits(h) + getBits(h + 1) + getBits(h + 2) + getBits(h + 3) + getBits(h + 4) + getBits(h + 5)
+    let val = txid + getBits(h) + getBits(h + 1) + getBits(h + 2) + getBits(h + 3) + getBits(h + 4) + getBits(h + 5) + getTsBits(h) + getTsBits(h + 1) + getTsBits(h + 2)
     WriteSet([
         DataEntry("random_value_" + txid, toBase58String(sha256(toBytes(val))))
     ])
