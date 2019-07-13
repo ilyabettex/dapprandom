@@ -1,0 +1,53 @@
+{-# STDLIB_VERSION 3 #-}
+{-# CONTENT_TYPE DAPP #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+
+let topNodes = [
+    base58'3P2HNUd5VUPLMQkJmctTPEeeHumiPN2GkTb',
+    base58'3PA1KvFfq9VuJjg45p2ytGgaNjrgnLSgf4r',
+    base58'3PEFQiFMLm1gTVjPdfCErG8mTHRcH2ATaWa',
+    base58'3P23fi1qfVw6RVDn4CH2a5nNouEtWNQ4THs',
+    base58'3PNMvAqJWYPkwf8fhz46rZiLEWpTmuhD3Uh',
+    base58'3P5dg6PtSAQmdH1qCGKJWu7bkzRG27mny5i',
+    base58'3P3PfgFKpfisSW6RCsbmgWXtwUH8fHAESw4'
+]
+
+func bitsToTake(address:ByteVector) = {
+    if address == topNodes[0] then 1 else
+    if address == topNodes[1] then 1 else
+    if address == topNodes[2] then 3 else
+    if address == topNodes[3] then 3 else
+    if address == topNodes[4] then 7 else
+    if address == topNodes[5] then 7 else
+    if address == topNodes[6] then 7 else
+    15
+}
+
+func getBits(h:Int) = {
+    let blockInfo = extract(blockInfoByHeight(h))
+    let generator = blockInfo.generator
+    let bits = bitsToTake(generator.bytes)
+    toString(toInt(generator.bytes) % bits)
+}
+
+# broadcast(invokeScript({ dApp: '3N4rjDDHk7RryE6zrghupUJ28wdEwhr1pYu', fee: 900000, call: { function: 'initRandom', args: [] }}))
+
+@Callable(i)
+func initRandom() = {
+    let txid = toBase58String(i.transactionId)
+    WriteSet([
+        DataEntry("random_height_" + txid, height)
+    ])
+}
+
+# broadcast(invokeScript({ dApp: '3N4rjDDHk7RryE6zrghupUJ28wdEwhr1pYu', fee: 900000, call: { function: 'completeRandom', args: [{ value: '5ZqMAVLZsGh8xA1u79nWzGWgQgdMmMciGtALmf2ZX43Q', type: 'string'}] }}))
+
+@Callable(i)
+func completeRandom(txid:String) = {
+    let h = extract(getInteger(this, "random_height_" + txid))
+    if height < h + 5 then throw("please wait until height " + toString(h + 5)) else
+    let val = txid + getBits(h) + getBits(h + 1) + getBits(h + 2) + getBits(h + 3) + getBits(h + 4) + getBits(h + 5)
+    WriteSet([
+        DataEntry("random_value_" + txid, toBase58String(sha256(toBytes(val))))
+    ])
+}
